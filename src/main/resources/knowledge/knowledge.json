@@ -1,0 +1,82 @@
+[
+  {
+    "id": "rapid-fire",
+    "game": "FPS Games",
+    "title": "Rapid Fire",
+    "description": "Hold left mouse button for automatic rapid fire",
+    "script": "-- Rapid Fire Script\n-- Hold left mouse button to auto-fire\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 1 then\n        while IsMouseButtonPressed(1) and IsScriptRunning() do\n            ClickMouseButton(1)\n            Sleep(80)\n        end\n    end\nend",
+    "tags": ["fps", "autofire", "mouse", "rapid"]
+  },
+  {
+    "id": "rapid-fire-cn",
+    "game": "射击游戏",
+    "title": "连射脚本",
+    "description": "按住鼠标左键自动连射",
+    "script": "-- 连射脚本\n-- 按住鼠标左键自动开火\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 1 then\n        while IsMouseButtonPressed(1) and IsScriptRunning() do\n            ClickMouseButton(1)\n            Sleep(80)\n        end\n    end\nend",
+    "tags": ["fps", "连射", "鼠标", "自动"]
+  },
+  {
+    "id": "combo-fighter",
+    "game": "Fighting Games",
+    "title": "Basic Combo",
+    "description": "Execute a basic fighting game combo with one key press",
+    "script": "-- Fighting Game Combo\n-- Press F1 to execute combo\n\nfunction OnEvent(event, arg)\n    if event == \"KEY_PRESSED\" then\n        -- Combo: light punch, light punch, heavy punch, special\n        TapKey(\"j\")\n        Sleep(100)\n        TapKey(\"j\")\n        Sleep(100)\n        TapKey(\"k\")\n        Sleep(150)\n        TapKey(\"l\")\n        Sleep(50)\n        TapKey(\"u\")\n        Log(\"Combo executed!\")\n    end\nend",
+    "tags": ["fighting", "combo", "keyboard"]
+  },
+  {
+    "id": "combo-fighter-cn",
+    "game": "格斗游戏",
+    "title": "基础连招",
+    "description": "按一个键自动打出一套基础连招",
+    "script": "-- 格斗游戏连招\n-- 按下任意键触发连招\n\nfunction OnEvent(event, arg)\n    if event == \"KEY_PRESSED\" then\n        -- 连招: 轻拳, 轻拳, 重拳, 必杀\n        TapKey(\"j\")\n        Sleep(100)\n        TapKey(\"j\")\n        Sleep(100)\n        TapKey(\"k\")\n        Sleep(150)\n        TapKey(\"l\")\n        Sleep(50)\n        TapKey(\"u\")\n        Log(\"连招完成!\")\n    end\nend",
+    "tags": ["格斗", "连招", "键盘"]
+  },
+  {
+    "id": "auto-clicker",
+    "game": "General",
+    "title": "Auto Clicker",
+    "description": "Auto click at fixed interval while holding right mouse button",
+    "script": "-- Auto Clicker\n-- Hold right mouse button for auto clicks\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 3 then\n        Log(\"Auto clicker started\")\n        while IsMouseButtonPressed(3) and IsScriptRunning() do\n            ClickMouseButton(1)\n            Sleep(200)\n        end\n        Log(\"Auto clicker stopped\")\n    end\nend",
+    "tags": ["clicker", "auto", "mouse", "general"]
+  },
+  {
+    "id": "auto-clicker-cn",
+    "game": "通用",
+    "title": "自动连点器",
+    "description": "按住右键时按固定间隔自动点击左键",
+    "script": "-- 自动连点器\n-- 按住鼠标右键触发自动点击\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 3 then\n        Log(\"连点器已启动\")\n        while IsMouseButtonPressed(3) and IsScriptRunning() do\n            ClickMouseButton(1)\n            Sleep(200)\n        end\n        Log(\"连点器已停止\")\n    end\nend",
+    "tags": ["连点", "自动", "鼠标", "通用"]
+  },
+  {
+    "id": "bhop",
+    "game": "FPS Games",
+    "title": "Bunny Hop",
+    "description": "Auto jump when holding space and moving",
+    "script": "-- Bunny Hop Script\n-- Automatically jump when holding space\n\nfunction OnEvent(event, arg)\n    if event == \"KEY_PRESSED\" then\n        if IsKeyPressed(\"space\") then\n            while IsKeyPressed(\"space\") and IsScriptRunning() do\n                TapKey(\"space\")\n                Sleep(30)\n            end\n        end\n    end\nend",
+    "tags": ["fps", "bhop", "jump", "movement"]
+  },
+  {
+    "id": "bhop-cn",
+    "game": "射击游戏",
+    "title": "连跳脚本",
+    "description": "按住空格自动连续跳跃",
+    "script": "-- 连跳脚本\n-- 按住空格自动跳跃\n\nfunction OnEvent(event, arg)\n    if event == \"KEY_PRESSED\" then\n        if IsKeyPressed(\"space\") then\n            while IsKeyPressed(\"space\") and IsScriptRunning() do\n                TapKey(\"space\")\n                Sleep(30)\n            end\n        end\n    end\nend",
+    "tags": ["fps", "连跳", "跳跃", "移动"]
+  },
+  {
+    "id": "recoil-control",
+    "game": "FPS Games",
+    "title": "Recoil Control",
+    "description": "Move mouse down while firing to counter recoil",
+    "script": "-- Recoil Control\n-- Compensates for weapon recoil while firing\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 1 then\n        while IsMouseButtonPressed(1) and IsScriptRunning() do\n            MoveMouseRelative(0, 3)\n            Sleep(10)\n        end\n    end\nend",
+    "tags": ["fps", "recoil", "aim", "mouse"]
+  },
+  {
+    "id": "recoil-control-cn",
+    "game": "射击游戏",
+    "title": "压枪脚本",
+    "description": "开火时自动下移鼠标抵消后坐力",
+    "script": "-- 压枪脚本\n-- 开火时自动补偿武器后坐力\n\nfunction OnEvent(event, arg)\n    if event == \"MOUSE_BUTTON_PRESSED\" and arg == 1 then\n        while IsMouseButtonPressed(1) and IsScriptRunning() do\n            MoveMouseRelative(0, 3)\n            Sleep(10)\n        end\n    end\nend",
+    "tags": ["fps", "压枪", "瞄准", "鼠标"]
+  }
+]
