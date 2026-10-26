@@ -124,19 +124,55 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 | 环节 | 必须掌握 | 容易踩的坑 |
 | --- | --- | --- |
 | 文档解析 | PDF/Word/Markdown 抽取，表格与代码块保真 | 直接 `pdftotext` 会把表格拍平 |
-| 分块 | 固定长度 vs 语义分块 vs 递归分块，overlap 的作用 | 中文按字符切会切碎词 |
-| 嵌入 | `nomic-embed-text` 的维度、归一化、批量调用 | 忘了归一化导致相似度失真 |
+| 分块 | **递归结构感知分块**（按标题/列表边界切）+ 元数据设计 | 中文按字符切会切碎词 |
+| 嵌入 | 维度、归一化、批量；**注意任务前缀与上下文长度** | 见下方两个实测坑 |
 | 向量库 | pgvector（推荐，和 Spring Boot 同栈）或 Milvus | 索引类型选错，数据量一大就慢 |
 | 混合检索 | dense + BM25 + RRF 融合 | 只做向量检索，专有名词命中率极低 |
-| 重排序 | BGE-reranker 等 cross-encoder | 把 rerank 当万能药，忽略召回本来就没命中 |
+| 重排序 | cross-encoder（bge-reranker 等）top-50→top-5 | 把 rerank 当万能药，忽略召回本来就没命中 |
 | 查询改写 | HyDE、多查询展开 | 过度改写反而跑偏 |
 | 权限过滤 | 检索前按用户权限过滤 | 检索后才过滤 = 数据泄露 |
+
+#### ⚠️ 你本机 `nomic-embed-text` 的两个实测坑
+
+我直接在你的 Ollama 上验证过，这两条会直接影响检索效果：
+
+**坑 1：必须加任务前缀。** 这个模型用 `search_document:` / `search_query:` 前缀训练。
+实测同一句话加不加前缀，向量确实不同（前 3 维 `[-0.0146, 0.0401, -0.1266]` vs `[-0.016, 0.029, -0.1276]`）。
+**入库文档用 `search_document:`，查询用 `search_query:`**，混用会掉召回率。
+
+**坑 2：上下文只有 2048 token。** `nomic-bert.context_length = 2048`。
+实测喂 6000 字符仍返回 768 维向量，但**超出部分被静默截断**——不会报错，
+你只会发现「明明写在文档里的内容检索不到」。分块大小要控制在 2048 token 以内。
+
+> 补充：有资料说「Ollama 默认 num_ctx 只有 2048」，但在你的机器上 `api/show` 显示
+> `num_ctx` 已被设为 8192。真正的硬限制是模型原生 2048，别指望调 num_ctx 突破。
+>
+> 想换更强的嵌入模型，本地可选 `qwen3-embedding:0.6b`（639MB、多语言、32K 上下文）；
+> 中文混合检索用 `bge-m3`（dense+sparse+多向量三合一）。
+
+#### RAG 的形态演进：从线性到循环
+
+2026 年的默认形态已不只是「切块→嵌入→top-k→塞 prompt」这条直线，
+而是 **Agentic RAG**：检索变成 agent 可调用的工具，带查询改写、自我纠错、多跳回退。
+
+**但别急着上。** 简单事实型问答走传统检索延迟更低、成本更可控。
+Agentic RAG 只在多跳/需反复求证的问题上有优势，且**必须加步数上限 + 单步检索评分**，
+否则成本失控。
+
+**顺序**：先把线性 RAG 做到可测量（混合检索 + 重排），再考虑引入 agentic 循环。
+跳过第一步直接上 agentic，你根本不知道好在哪。
+
+#### 重排序是性价比最高的一环
+
+如果只优化一处，选它。cross-encoder 做 top-50 → top-5 精排，
+有报告称 precision 提升约 25%，延迟只增加 5–30ms/文档。
 
 **动手（这条线直接产出可面试的项目）**：给 GmScript 加「私有知识库问答」——
 把你自己写的 `docs/*.md` 和 Lua API 文档喂进去，问「怎么给脚本绑热键」能答对且给出处。
 `nomic-embed-text` 你已经装了但代码里没用，这次正好用上。
 
-**做到什么程度算掌握**：能对着一个答错的问题，说清楚是「没召回」还是「召回了但没用好」，并能用数据证明改进有效。
+**做到什么程度算掌握**：能对着一个答错的问题，说清楚是「没召回」还是「召回了但没用好」，
+并能用**改动前后的评测数字**证明改进有效。只会调 `Retriever` 不算会 RAG。
 
 #### 关于 GraphRAG：现在别碰
 
@@ -146,12 +182,14 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
   （[Persistent 分析](https://www.persistent.com/blogs/when-does-graphrag-outperform-traditional-rag/)）。
 - **但代价是每查询喂给模型 9,770 tokens，而朴素 RAG 只要 3,000 左右**——
   三倍成本换多跳问题的提升（[FutureAGI 实测](https://futureagi.com/blog/graphrag-vs-rag/)）。
-- 中文实测更直接：KG-GraphRAG 因**图谱覆盖率只有 65%** 而全面落后，
-  「实体缺失是致命伤」；混合方案（RAG + 轻量图谱）比纯 RAG 高 8–10 个点，比纯 GraphRAG 高 5–6 个点
+- IEEE 实测：对**浅层事实问答收益可忽略**，平均延迟 2.3×；
+  另一份对比给出单次检索 61 万 token 对 LightRAG 约 100 token
+  （[IEEE 11579073](https://ieeexplore.ieee.org/document/11579073)）。
+- 中文实测：KG-GraphRAG 因**图谱覆盖率只有 65%** 而全面落后，「实体缺失是致命伤」
   （[腾讯云社区实测](https://cloud.tencent.com.cn/developer/article/2740285)）。
 
-**给你的判断**：GraphRAG 解决的是「多跳、全局归纳」类问题，你的知识库问答不属此类。
-**先把混合检索（dense + BM25 + RRF）做扎实**，这比上 GraphRAG 收益高得多。
+**给你的判断**：GraphRAG 只在**知识本身是关系型的**场景才值得（组织架构、供应链、法条引用）。
+你的知识库问答不属此类。**先把混合检索做扎实**，这比上 GraphRAG 收益高得多。
 面试时能说清「我评估过 GraphRAG，但我的场景不需要，因为 X」反而是加分项。
 
 **资源**：
@@ -165,13 +203,33 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 传统单测断言不了概率输出。这是 Java 工程师迁移率最低的能力（约 10%），也是招聘方最看重的。
 
+**为什么招聘方这么看重？** 两个硬理由：
+
+1. agent 的失败往往是「**流程错了**」而不是「答案错了」——越权调用、数据泄漏、
+   未授权承诺，传统断言根本抓不到。
+2. **EU AI Act 的 GPAI 条款 2026-08-02 已生效**，罚则最高全球营收 3%，
+   要求的是**可举证的记录**，不是「我跑过一次 eval」。
+
 | 要掌握 | 具体内容 |
 | --- | --- |
-| 黄金评测集 | 自己攒 50–100 条「问题 + 期望要点」，覆盖正常/边界/对抗 |
-| LLM-as-Judge | 用强模型打分，**必须知道它的陷阱**：位置偏见、长度偏好、自我偏好 |
-| 回归测试 | 每次改 prompt / 换模型，跑一遍评测集，指标不能退化 |
-| 指标 | 检索侧 recall@k / MRR；生成侧 faithfulness / answer relevancy |
-| 可观测 | 每次调用的 token 消耗、延迟、成本归因、失败率 |
+| 黄金评测集 | 50–100 条「问题 + 期望要点」，**从你实际答错的 query 里长出来**，按失败模式分类打标、版本化 |
+| LLM-as-Judge | 用强模型打分，**必须知道它的陷阱**（见下） |
+| 回归测试 | PR 触发全量 golden set；改 prompt / 换模型，指标不能退化 |
+| 指标 | 检索侧 recall@k / MRR / nDCG@10；生成侧 faithfulness / answer relevancy |
+| 可观测 | 每次调用的 token 消耗、延迟（p95）、成本归因、失败率 |
+
+#### LLM-as-Judge 的陷阱有硬数据，不是玄学
+
+| 陷阱 | 实测表现 | 能不能靠 prompt 解决 |
+| --- | --- | --- |
+| **位置偏置** | 源于自回归解码，A/B 顺序影响结果 | **几乎无效**——rubric 里写「忽略位置」没用，只能交换顺序取两次结果 |
+| **长度偏好** | 越长的答案分越高 | 部分可缓解：控制长度、明确「简洁也加分」 |
+| **自我偏好** | 同家族模型互评有 **10–25% 系统性偏置** | 不能：换不同家族的模型当 judge |
+
+**硬门槛**：judge 必须先与人工标注对齐到 **85–90% 一致率**才能用。
+对齐不到，你的评测数字就是自欺欺人。
+
+**有 ground truth 的项优先用确定性断言**，别什么都丢给 LLM 打分。
 
 **动手**：给 GmScript 的知识库问答建一套评测集 + 一个 `mvn test` 能跑的回归测试。
 这一步做完，你的项目从「demo」变成「有质量保障的系统」——面试时这比多两个功能管用得多。
@@ -179,7 +237,8 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 **资源**：
 - [Ragas 文档](https://docs.ragas.io/en/stable/)（RAG 评测指标最标准实现）
 - [Promptfoo](https://www.promptfoo.dev/docs/intro/)（提示词回归 + 红队）
-- [Langfuse](https://langfuse.com/docs)（调用链追踪、token 成本，可自部署）
+- [Langfuse](https://langfuse.com/docs)（MIT、OTel 原生，最广泛采用的开源方案，可自部署）
+- [Arize Phoenix](https://phoenix.arize.com/)（备选，OTel 路线）
 - [EvalScope](https://github.com/modelscope/evalscope)（中文友好，一条命令跑基准 + 压测 TTFT/TPOT）
 
 ---
@@ -190,21 +249,41 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 | 概念 | 要理解到什么程度 |
 | --- | --- |
-| ReAct 循环 | 能徒手写出「思考→调工具→观察→再思考」的循环，不依赖框架 |
-| Plan-and-Execute | 知道它适合长任务、不适合需要频繁纠偏的任务 |
-| 工具 Schema 设计 | 参数尽量扁平、给模型明确的「什么时候该用/不该用」 |
-| 错误处理 | **不是 `throw`，而是返回模型能自救的提示**（迁移率仅 20%） |
-| 幂等与重试 | 工具调用必须幂等，否则重试会造成副作用 |
-| 权限与安全 | 高危操作要人工确认（HITL）、要有审计日志 |
+| **原生 tool calling 循环** | 用 JSON Schema 声明工具、走原生 function calling，**不要手写 `Thought:/Action:` 文本解析** |
+| 循环控制 | 步数上限、超时、失败回退——没有这三样，agent 会烧钱且卡死 |
+| Plan-and-Execute | 只在**步骤能预先列全**时成立；中间失败即脆断，生产要 plan-execute-replan |
+| 工具 Schema 设计 | 参数尽量扁平、明确「什么时候该用/不该用」 |
+| 错误处理 | **带内返回错误**而非抛异常，并标注可重试性（迁移率仅 20%） |
+| 幂等与回查 | 写操作必须带幂等键 + 回查接口，否则重试造成副作用 |
+| 权限与安全 | 高危操作要人工确认（HITL）、要有审计日志；工具访问本身就是安全边界 |
 | 状态持久化 | Checkpoint：长任务中断后能续跑 |
 
-**关于「多智能体」**：2026 年企业真实落地的比例很低，多数是 demo。Gartner 预测超 60% 的早期 Agent 编排实施达不到预期。**先把单 Agent 做扎实，别一上来就上多智能体。**
+#### ⚠️ 重要修正：不要手写 ReAct 文本解析
 
-**MCP（Model Context Protocol）**：值得学。Spring AI 与 LangChain4j 都已接入，是 Java 侧 Agent 的必修协议。
+我最初把「徒手写 ReAct 循环」列成了必学项，**这条需要改**：
+
+- IBM watsonx 已明确标注 ReAct 自 **2026-07-15 起废弃**（[IBM Docs](https://www.ibm.com/docs/vi/watsonx/watson-orchestrate/base?topic=agents-choosing-style-of-agent)）。
+- 社区也在移除「解析 `Thought:/Action:` 文本」的回退路径，要求走原生 tool calling。
+
+**要学的是「循环控制 + 工具契约」，不是「解析模型输出的文本格式」。**
+理解 ReAct 的**思想**（推理与行动交替）仍然有价值，但实现上直接用原生 function calling。
+
+**关于「多智能体」**：默认架构下是成本灾难——Anthropic 数据是单 agent 消耗 4 倍聊天 token，
+多 agent 系统是它的 **15 倍**（[Forrester](https://www.forrester.com/blogs/your-ai-bill-is-a-context-problem/)）。
+只在**子任务可并行、且各自需要独立长上下文**时才是真需求，否则就是 demo 玩具。
+**先把单 Agent 做扎实。**
+
+**MCP（Model Context Protocol）**：已成事实标准，各大厂原生支持，41% 软件组织已在生产运行。
+Spring AI 与 LangChain4j 都已接入，是 Java 侧 Agent 的必修协议。
 - [MCP 官方文档](https://modelcontextprotocol.io/)
 - [MCP 中文社区镜像](https://modelcontextprotocol.info/zh-cn/docs/)
 
-**动手**：把 GmScript 的 Lua API 包装成一个 MCP Server，让外部 AI 客户端能调用你的脚本引擎。这是个很出彩的项目——它同时展示协议理解、Java 服务化、以及你对自己项目的深度掌握。
+**动手**：把 GmScript 的 Lua API 包装成一个 MCP Server，让外部 AI 客户端能调用你的脚本引擎。
+这是个很出彩的项目——它同时展示协议理解、Java 服务化、以及你对自己项目的深度掌握。
+
+> 真实数据供参考：**77%–89% 的 agent 项目过不了 pilot→production**
+> （Fiddler 88%、Hendricks 89%、CMU 实测办公任务失败率约 70%）。
+> 根因通常不是模型能力，而是**缺少可举证的证据**——这正是下一节「评测」要解决的。
 
 ### 生产化能力（Java 背景的护城河）
 
@@ -258,11 +337,19 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 | --- | --- |
 | 从零训练大模型 | 岗位仅占 8.7%，92% 要硕士以上，且预训练需求收缩 30–40% |
 | 手写 Transformer / 反向传播 | 除非你想做算法岗。理解概念即可，不必能手推 |
-| **GraphRAG（现阶段）** | 每查询喂 9,770 tokens vs 朴素 RAG 的 3,000，三倍成本；中文实测因图谱覆盖率不足反而落后 |
+| **手写 ReAct 文本解析**（`Thought:/Action:`） | IBM 已标注 ReAct 2026-07-15 废弃；原生 tool calling 普及，解析文本是纯技术债 |
+| **GraphRAG 作默认方案** | 浅层问答零收益；延迟 2.3×、单次检索 61 万 token vs LightRAG 约 100 token |
+| **手写向量索引 / 自建向量库** | pgvector、Qdrant 等已成熟，没必要自己造 HNSW |
+| **torchtune** | 官方 README 已声明停止维护，新项目别选 |
+| 深绑 LangChain / LlamaIndex 专有 DSL | 抽象随版本漂移；概念可迁移，DSL 不值得背 |
+| 个人规模全参微调 / DeepSpeed ZeRO / Megatron | 单卡无意义，属平台/训练团队范畴 |
 | LangChain 0.x 的 `initialize_agent` / `AgentExecutor` 写法 | 已迁到 1.x + LangGraph，旧写法不是推荐路径 |
 | OpenAI Evals 搭评测 | `v1/prompts` 计划 2026-11-30 关停，官方推荐迁 Promptfoo |
 | 提示词工程师岗位技能树 | 岗位已消亡，能力已融入日常开发 |
-| 一上来就搞多智能体 | Gartner 预测超 60% 早期 Agent 编排达不到预期；先做扎实单 Agent |
+| **刷 MTEB 榜换嵌入模型** | 换模型须全量重嵌；同维度 ≠ 同向量空间，迁移成本远超收益 |
+| **all-minilm 上生产** | 2022 年的 SOTA，现在只适合原型或边缘设备 |
+| 自训嵌入模型 | 投入产出比极低，招聘不看 |
+| 一上来就搞多智能体 | 15× token 成本（Anthropic 数据）；只在并行子任务时才值 |
 | 追每一个新框架 | 框架半年一换，**原理和评测能力不换** |
 
 ---
@@ -280,30 +367,31 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 **RAG（转行核心）**
 - 文档解析（PDF/Word/MD，表格与代码块保真）
-- 分块策略（固定 / 语义 / 递归 + overlap）
-- Embedding（维度、归一化、批量）
+- **递归结构感知分块** + 元数据设计
+- Embedding（维度、归一化、批量、**任务前缀**、上下文长度上限）
 - 向量库（pgvector 或 Milvus，索引选型）
 - 混合检索（dense + BM25 + RRF）
-- 重排序（cross-encoder）
+- 重排序（cross-encoder，top-50→top-5）
+- 检索评测（recall@k / MRR / nDCG@10）
 - 上下文拼装与引用溯源
 
 **Agent**
-- ReAct 循环（能手写，不靠框架）
-- Tool Calling（Schema 设计、多轮上限、幂等）
-- 错误处理：返回模型能自救的提示
+- **原生 tool calling**（JSON Schema、带内错误、幂等键、可重试性分类）
+- 循环控制（步数上限、超时、失败回退）
 - 状态持久化（Checkpoint）
+- 上下文工程（预算分配、压缩、记忆分层）
 
 **评测与工程（差异化关键）**
-- 评测集构建（覆盖正常/边界/对抗）
-- LLM-as-Judge 及其三大陷阱
+- 评测集构建（**从真实失败里长出来**，分类打标、版本化）
+- LLM-as-Judge 及校准（**与人工对齐 ≥85%** 才可用）
 - 回归测试与指标（recall@k、faithfulness）
-- 可观测：token / 延迟 / 成本归因
+- 可观测：全链路 trace / token / 延迟 p95 / 成本归因
 - 熔断降级、超时重试、限流
 
 **框架**
 - Spring AI（ChatClient / Advisor / Tool Calling / MCP）
 - LangChain4j（能看懂、能对比）
-- MCP 协议
+- MCP 协议（读写与安全边界）
 
 ### 加分（有就更好，面试亮点）
 
@@ -337,7 +425,51 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 ---
 
-## 十、时间预期（现实版）
+## 十、项目验收标准（做到什么程度算「会」）
+
+不要用「我做了个 RAG 项目」这种说法，它没有信息量。下面三档，**每档都有可验收的硬指标**。
+
+### 项目 A：检索系统（唯一必做）
+
+**规模**：自己的 500–5000 篇语料（你的 `docs/` + Lua API 文档 + 你读的技术文章）。
+
+**必须能拿出来**：
+
+- [ ] **改动前后的评测数字**，逐项列：混合检索提升多少、加重排提升多少、换分块策略提升多少
+- [ ] 评测集**从你实际答错的 query 里攒出来**，不是编的
+- [ ] 能回答「这个答错的问题，是没召回还是召回了没用对」
+
+**不合格的样子**：只调了 `Retriever`，说不出任何一个数字。
+
+### 项目 B：单 Agent 干一件真事
+
+**规模**：5–8 个工具，**至少一个写操作**。
+
+**必须能拿出来**：
+
+- [ ] 写工具带**幂等键 + 回查接口**
+- [ ] 错误**带内返回**并标注可重试性（不是抛异常）
+- [ ] Langfuse 能看到**每步 trace、单次任务成本、p95 延迟**
+- [ ] **50+ 回归用例在 CI 跑**
+- [ ] judge 与自标注一致率 **≥85%**
+
+**不合格的样子**：多智能体聊天玩具；只能读不能写；出错了直接抛异常。
+
+> 提醒：**77%–89% 的 agent 项目过不了 pilot→production**，根因是缺可举证证据。
+> 上面这五条就是「可举证」的具体形态。
+
+### 项目 C：微调（可选，须能证明必要性）
+
+- [ ] 先用 prompt + RAG 建立**基线数字**
+- [ ] 再用 1–2K 条精选样本在 12GB 卡上 QLoRA 微调 7–8B
+- [ ] 对比基线，给出提升数字
+
+**做不出超过基线的数字，就把这次当「我验证了不该微调」的结论**——这本身就是掌握了边界，
+面试时讲这个结论比硬吹「我做了微调」更显水平。
+
+---
+
+## 十一、时间预期（现实版）
 
 | 节点 | 能达到什么 | 注意 |
 | --- | --- | --- |
@@ -349,7 +481,7 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 ---
 
-## 十一、本机环境备忘
+## 十二、本机环境备忘
 
 - **12GB VRAM 的现实边界**：7B Q4 舒适，14B Q4 是临界（约 12GB），再大必须量化或 CPU offload。
 - **RTX 50 系（sm_120）的坑**：微调要用 `bitsandbytes` 的 **CUDA 12.8–12.9 构建**，旧 wheel 直接报错。这是最容易卡住的一步。
