@@ -1,0 +1,366 @@
+/* AI 对话面板：连接条、消息流、思考链折叠、代码块操作、输入区。 */
+
+.side-panel {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  background: var(--bg-surface);
+}
+
+.side-tabs {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  flex: 0 0 auto;
+  height: var(--tabbar-h);
+  padding: 0 var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.side-tab {
+  height: 24px;
+  padding: 0 var(--sp-2);
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-2);
+  font-family: inherit;
+  font-size: var(--fs-13);
+  cursor: pointer;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+.side-tab:hover {
+  color: var(--text-1);
+}
+
+.side-tab-active {
+  background: var(--bg-raised);
+  color: var(--text-1);
+}
+
+/* ---------- 连接条 ---------- */
+
+.chat-connect {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.chat-connect .select {
+  height: 26px;
+  font-size: var(--fs-12);
+}
+
+.chat-offline {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--warning);
+  background: rgba(210, 162, 76, 0.08);
+  color: var(--warning);
+  font-size: var(--fs-12);
+}
+
+.chat-offline-text {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* ---------- 消息流 ---------- */
+
+.chat-messages {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.chat-turn {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  max-width: 88%;
+}
+
+.chat-turn-user {
+  align-self: flex-end;
+  align-items: flex-end;
+}
+
+.chat-turn-assistant {
+  align-self: flex-start;
+  align-items: flex-start;
+}
+
+.chat-role {
+  font-size: var(--fs-12);
+  color: var(--text-3);
+}
+
+.chat-bubble {
+  border-radius: var(--radius-card);
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-13);
+  line-height: var(--lh-ui);
+  overflow-wrap: anywhere;
+}
+
+.chat-bubble-user {
+  background: var(--bubble-user);
+  color: var(--text-1);
+  white-space: pre-wrap;
+}
+
+.chat-bubble-assistant {
+  background: var(--bubble-assistant);
+  color: var(--text-1);
+}
+
+.chat-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--fs-12);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+/* 思考链：折叠显示 */
+.chat-thinking {
+  width: 100%;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-sunken);
+}
+
+.chat-thinking > summary {
+  padding: 4px var(--sp-2);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  cursor: pointer;
+  list-style: none;
+}
+
+.chat-thinking > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chat-thinking > summary::before {
+  content: '▸ ';
+  color: var(--text-3);
+}
+
+.chat-thinking[open] > summary::before {
+  content: '▾ ';
+}
+
+.chat-thinking-body {
+  padding: var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-2);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  line-height: var(--lh-code);
+  white-space: pre-wrap;
+  max-height: 260px;
+  overflow-y: auto;
+}
+
+.chat-error {
+  border-left: 2px solid var(--danger);
+  padding: var(--sp-2);
+  background: rgba(209, 97, 90, 0.08);
+  border-radius: var(--radius-control);
+  font-size: var(--fs-12);
+}
+
+.chat-error-reason {
+  color: var(--danger);
+}
+
+.chat-error-hint {
+  margin-top: 2px;
+  color: var(--text-2);
+}
+
+.chat-cursor {
+  display: inline-block;
+  width: 6px;
+  height: 13px;
+  margin-left: 2px;
+  background: var(--text-2);
+  vertical-align: text-bottom;
+  animation: caret 1s steps(2, start) infinite;
+}
+
+@keyframes caret {
+  to {
+    visibility: hidden;
+  }
+}
+
+/* ---------- Markdown ---------- */
+
+.md > * + * {
+  margin-top: var(--sp-2);
+}
+
+.md p {
+  margin: 0;
+}
+
+.md h1,
+.md h2,
+.md h3 {
+  font-size: var(--fs-14);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.md ul,
+.md ol {
+  margin: 0;
+  padding-left: 1.5em;
+}
+
+.md li + li {
+  margin-top: 2px;
+}
+
+.md blockquote {
+  margin: 0;
+  padding-left: var(--sp-2);
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-2);
+}
+
+.md table {
+  border-collapse: collapse;
+  font-size: var(--fs-12);
+}
+
+.md th,
+.md td {
+  border: 1px solid var(--border-subtle);
+  padding: 2px 6px;
+  text-align: left;
+}
+
+.md-inline-code {
+  padding: 1px 4px;
+  border-radius: var(--radius-control);
+  background: var(--bg-sunken);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  color: var(--syn-api);
+}
+
+.md-code {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-sunken);
+  overflow: hidden;
+}
+
+.md-code-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 2px var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-family: var(--font-mono);
+}
+
+.md-code-lang {
+  flex: 1 1 auto;
+}
+
+.md-code-pre {
+  margin: 0;
+  padding: var(--sp-2);
+  max-height: 320px;
+  overflow: auto;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  line-height: var(--lh-code);
+  color: var(--text-1);
+  white-space: pre;
+}
+
+/* ---------- 输入区 ---------- */
+
+.chat-compose {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.chat-compose-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.chat-compose .textarea {
+  min-height: 56px;
+  max-height: 180px;
+  font-size: var(--fs-13);
+}
+
+.chat-compose-hint {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+/* ---------- 历史会话 ---------- */
+
+.chat-history {
+  border-bottom: 1px solid var(--border-subtle);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.chat-history-item {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 32px;
+  padding: 0 var(--sp-2);
+  cursor: pointer;
+}
+
+.chat-history-item:hover {
+  background: var(--list-hover);
+}
+
+.chat-history-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-12);
+  color: var(--text-1);
+}
+
+.chat-history-time {
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-family: var(--font-mono);
+}

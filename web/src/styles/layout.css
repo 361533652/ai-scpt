@@ -1,0 +1,207 @@
+/* 应用外壳：顶栏 40px、三栏 flex、底部控制台可折叠。页面本身不滚动。 */
+
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-height: 0;
+}
+
+.app-body {
+  flex: 1 1 auto;
+  display: flex;
+  min-height: 0;
+  min-width: 0;
+}
+
+/* ---------- 顶栏 ---------- */
+
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  flex: 0 0 auto;
+  height: var(--topbar-h);
+  padding: 0 var(--sp-3);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.topbar-left,
+.topbar-right {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.topbar-right {
+  justify-content: flex-end;
+}
+
+.topbar-center {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+}
+
+.topbar-script {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 0;
+}
+
+.topbar-script-name {
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dirty-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--text-3);
+  flex: 0 0 auto;
+}
+
+.dirty-dot-on {
+  background: var(--primary);
+}
+
+/* ---------- 三栏与拖拽条 ---------- */
+
+.pane-left {
+  flex: 0 0 auto;
+  /* 拖拽条两侧的面板都要能被压窄：只靠固定宽度时，一旦视口小于
+     「左 + 中(min-width) + 右」，中间那条 min-width 会把右侧挤成 0 宽，
+     表现就是 AI 面板变成一条竖线。这里给每个 pane 自己的下限。 */
+  min-width: 160px;
+  border-right: 1px solid var(--border-subtle);
+}
+
+.pane-center {
+  /* 原来写死 min-width: 480px，在 1024 及以下视口直接把右侧挤没。
+     改成可收缩 + 更低的下限，让三栏在任何宽度下都还有意义。 */
+  flex: 1 1 auto;
+  min-width: 240px;
+}
+
+.pane-right {
+  flex: 0 0 auto;
+  min-width: 240px;
+  border-left: 1px solid var(--border-subtle);
+}
+
+.splitter {
+  flex: 0 0 auto;
+  background: transparent;
+  transition: background-color 150ms ease;
+}
+
+.splitter-v {
+  width: 5px;
+  margin: 0 -2px;
+  z-index: 2;
+  cursor: col-resize;
+}
+
+.splitter-h {
+  height: 5px;
+  margin: -2px 0;
+  z-index: 2;
+  cursor: row-resize;
+}
+
+.splitter:hover,
+.splitter-active {
+  background: var(--primary);
+}
+
+/* ---------- 底部控制台 ---------- */
+
+.console-dock {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-top: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.console-resize {
+  height: 5px;
+  margin: -2px 0;
+  cursor: row-resize;
+  flex: 0 0 auto;
+}
+
+/* ---------- token 缺失整屏提示 ---------- */
+
+.gate {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  padding: var(--sp-5);
+  background: var(--bg-base);
+}
+
+.gate-card {
+  width: 100%;
+  max-width: 560px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-card);
+  background: var(--bg-surface);
+  padding: var(--sp-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+}
+
+.gate-title {
+  font-size: var(--fs-20);
+  font-weight: 500;
+  color: var(--text-1);
+}
+
+.gate-text {
+  font-size: var(--fs-13);
+  color: var(--text-2);
+}
+
+.gate-steps {
+  margin: 0;
+  padding-left: 1.4em;
+  color: var(--text-2);
+  font-size: var(--fs-13);
+}
+
+.gate-steps li {
+  margin-bottom: var(--sp-1);
+}
+
+.gate-code {
+  display: block;
+  margin-top: var(--sp-1);
+  padding: var(--sp-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-sunken);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  overflow-wrap: anywhere;
+}
+
+.gate-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: flex-end;
+}

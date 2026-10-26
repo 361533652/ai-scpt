@@ -1,0 +1,80 @@
+/* 设计令牌：值全部来自 docs/ui-design.md 第二节，不要在别处硬编码颜色。 */
+:root {
+  /* 背景 */
+  --bg-base: #1b1d21;
+  --bg-surface: #22252a;
+  --bg-raised: #2a2e34;
+  --bg-sunken: #16181b;
+
+  /* 边框 */
+  --border-subtle: #303439;
+  --border-strong: #3d434b;
+  --focus-ring: #4a7fc1;
+
+  /* 主色 */
+  --primary: #4a7fc1;
+  --primary-hover: #5a8cd2;
+  --primary-active: #3d6ba8;
+
+  /* 语义 */
+  --success: #52a86a;
+  --warning: #d2a24c;
+  --danger: #d1615a;
+  --info: #5a8cd2;
+
+  /* 文字 */
+  --text-1: #d6d9de;
+  --text-2: #9aa1ab;
+  --text-3: #6e757f;
+  --text-disabled: #565c65;
+
+  /* 语法 */
+  --syn-keyword: #c678dd;
+  --syn-string: #ce9164;
+  --syn-number: #8cbef0;
+  --syn-comment: #6a9955;
+  --syn-api: #dec55f;
+
+  /* 组件专用（规范第三节给定值） */
+  --list-hover: #282c32;
+  --list-selected: #2f343b;
+  --bubble-user: #2d3a4e;
+  --bubble-assistant: #2a2e34;
+  --focus-ring-soft: rgba(74, 127, 193, 0.25);
+  --shadow-overlay: 0 8px 24px rgba(0, 0, 0, 0.45);
+
+  /* 字号 */
+  --fs-12: 12px;
+  --fs-13: 13px;
+  --fs-14: 14px;
+  --fs-16: 16px;
+  --fs-20: 20px;
+
+  /* 间距基数 4 */
+  --sp-1: 4px;
+  --sp-2: 8px;
+  --sp-3: 12px;
+  --sp-4: 16px;
+  --sp-5: 24px;
+  --sp-6: 32px;
+
+  /* 圆角 */
+  --radius-control: 4px;
+  --radius-card: 6px;
+  --radius-pill: 999px;
+
+  /* 行高 */
+  --lh-ui: 1.45;
+  --lh-code: 1.6;
+
+  /* 字体：界面系统中文黑体，代码/日志/路径等宽。不引外链字体。 */
+  --font-ui: "Microsoft YaHei UI", "Microsoft YaHei", "PingFang SC", "Hiragino Sans GB", "Source Han Sans SC",
+    system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Cascadia Mono", "Cascadia Code", Consolas, "JetBrains Mono", "Sarasa Mono SC", "Noto Sans Mono CJK SC",
+    ui-monospace, monospace;
+
+  /* 固定尺寸 */
+  --topbar-h: 40px;
+  --tabbar-h: 32px;
+  --console-collapsed-h: 32px;
+}

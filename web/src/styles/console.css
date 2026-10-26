@@ -1,0 +1,158 @@
+/* 运行控制台：等宽日志行、级别词着色、错误行左侧 2px 红条、标题条运行指示。 */
+
+.console-header {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  height: var(--console-collapsed-h);
+  padding: 0 var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  background: var(--bg-surface);
+}
+
+.console-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-13);
+  font-weight: 500;
+  color: var(--text-1);
+  white-space: nowrap;
+}
+
+.console-count {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+}
+
+.console-filters {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.console-filter {
+  height: 20px;
+  padding: 0 6px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-3);
+  font-family: inherit;
+  font-size: var(--fs-12);
+  cursor: pointer;
+  transition: color 150ms ease, background-color 150ms ease;
+}
+
+.console-filter:hover {
+  color: var(--text-1);
+  background: var(--bg-raised);
+}
+
+.console-filter-active {
+  color: var(--text-1);
+  background: var(--bg-raised);
+  border-color: var(--border-strong);
+}
+
+.console-hint {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  flex: 0 0 auto;
+  padding: 3px var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--warning);
+  background: rgba(210, 162, 76, 0.08);
+  color: var(--warning);
+  font-size: var(--fs-12);
+}
+
+.console-paused {
+  flex: 0 0 auto;
+  padding: 3px var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  border-left: 2px solid var(--info);
+  background: rgba(90, 140, 210, 0.08);
+  color: var(--info);
+  font-size: var(--fs-12);
+}
+
+.console-body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--bg-sunken);
+  padding: var(--sp-1) 0;
+}
+
+.log-row {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-13);
+  line-height: var(--lh-code);
+  color: var(--text-1);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.log-row-error {
+  border-left: 2px solid var(--danger);
+  padding-left: 10px;
+}
+
+.log-time {
+  flex: 0 0 68px;
+  width: 68px;
+  overflow: hidden;
+  color: var(--text-3);
+  white-space: nowrap;
+}
+
+.log-level {
+  flex: 0 0 34px;
+  text-transform: none;
+}
+
+.log-level-debug {
+  color: var(--text-3);
+}
+
+.log-level-info {
+  color: var(--text-2);
+}
+
+.log-level-warn {
+  color: var(--warning);
+}
+
+.log-level-error {
+  color: var(--danger);
+}
+
+.log-source {
+  flex: 0 0 auto;
+  color: var(--text-3);
+}
+
+.log-message {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.log-row-error .log-message {
+  color: var(--danger);
+}
+
+.console-empty {
+  padding: var(--sp-3);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+  font-family: var(--font-mono);
+}

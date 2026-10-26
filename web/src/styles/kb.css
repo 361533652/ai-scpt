@@ -1,0 +1,141 @@
+/* 知识库面板：搜索、列表、条目详情。 */
+
+.kb-search {
+  display: flex;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.kb-mode {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: 0 var(--sp-2) var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
+
+.kb-item {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.kb-item:hover {
+  background: var(--list-hover);
+}
+
+.kb-item-selected {
+  background: var(--list-selected);
+}
+
+.kb-item-selected::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: var(--primary);
+}
+
+.kb-item-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.kb-item-title {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--fs-13);
+  color: var(--text-1);
+}
+
+.kb-item-score {
+  color: var(--text-3);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+}
+
+.kb-item-snippet {
+  color: var(--text-2);
+  font-size: var(--fs-12);
+  line-height: var(--lh-ui);
+  max-height: 3.1em;
+  overflow: hidden;
+}
+
+.kb-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+
+.kb-tag {
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  color: var(--text-3);
+  font-size: 11px;
+  line-height: 15px;
+}
+
+.kb-detail {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+}
+
+.kb-detail-title {
+  font-size: var(--fs-14);
+  color: var(--text-1);
+}
+
+.kb-detail-content {
+  margin: 0;
+  padding: var(--sp-2);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--bg-sunken);
+  color: var(--text-1);
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  line-height: var(--lh-code);
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 320px;
+  overflow: auto;
+}
+
+.kb-detail-actions {
+  display: flex;
+  gap: var(--sp-1);
+  flex-wrap: wrap;
+}
+
+.kb-editor-content {
+  min-height: 220px;
+  font-family: var(--font-mono);
+  font-size: var(--fs-12);
+  line-height: var(--lh-code);
+}
+
+.kb-hits-note {
+  padding: var(--sp-1) var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}

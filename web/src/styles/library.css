@@ -1,0 +1,142 @@
+/* 脚本库：搜索、列表项（36px，选中左侧 2px 主色竖条）、项内操作。 */
+
+.library {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  height: 100%;
+}
+
+.library-search {
+  padding: var(--sp-2);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.library-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.library-item {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  height: 36px;
+  margin: 0 8px;
+  padding: 0 var(--sp-2) 0 8px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  transition: background-color 150ms ease;
+}
+
+.library-item:hover {
+  background: var(--list-hover);
+}
+
+.library-item-selected {
+  background: var(--list-selected);
+}
+
+.library-item-selected::before {
+  content: '';
+  position: absolute;
+  left: -8px;
+  top: 6px;
+  bottom: 6px;
+  width: 2px;
+  background: var(--primary);
+}
+
+.library-item-main {
+  flex: 1 1 auto;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.library-item-name {
+  font-size: var(--fs-13);
+  color: var(--text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.library-item-disabled .library-item-name {
+  color: var(--text-3);
+}
+
+.library-item-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: var(--fs-12);
+  color: var(--text-3);
+}
+
+.library-item-time {
+  flex: 0 0 auto;
+  width: 44px;
+  text-align: right;
+  font-size: var(--fs-12);
+  color: var(--text-3);
+  font-family: var(--font-mono);
+}
+
+.library-item-actions {
+  display: none;
+  align-items: center;
+  gap: 2px;
+  position: absolute;
+  right: var(--sp-1);
+  padding-left: var(--sp-2);
+  background: inherit;
+}
+
+.library-item:hover .library-item-actions,
+.library-item:focus-within .library-item-actions {
+  display: flex;
+}
+
+.library-item:hover .library-item-time,
+.library-item:focus-within .library-item-time {
+  visibility: hidden;
+}
+
+.library-item-confirm {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  font-size: var(--fs-12);
+  color: var(--text-2);
+}
+
+.status-chip {
+  display: inline-flex;
+  align-items: center;
+  height: 16px;
+  padding: 0 5px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  font-size: 11px;
+  color: var(--text-3);
+}
+
+.status-chip-on {
+  border-color: rgba(82, 168, 106, 0.4);
+  color: var(--success);
+}
+
+.library-footer {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+  padding: var(--sp-1) var(--sp-2);
+  border-top: 1px solid var(--border-subtle);
+  color: var(--text-3);
+  font-size: var(--fs-12);
+}
