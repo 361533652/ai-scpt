@@ -1,0 +1,14 @@
+# 统一行尾，避免 Windows 上因为 CRLF/LF 产生整文件级 diff。
+# 源码在仓库里统一存 LF；只有 Windows 脚本保留 CRLF。
+* text=auto eol=lf
+
+# PowerShell 脚本：Windows 原生，保留 CRLF（内容本身是纯 ASCII，见 build-exe.ps1 的说明）
+*.ps1 text eol=crlf
+
+# 二进制，别做行尾转换
+*.png binary
+*.jpg binary
+*.ico binary
+*.jar binary
+*.db binary
+*.lua text eol=lf

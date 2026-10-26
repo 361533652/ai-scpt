@@ -1,7 +1,19 @@
+# 构建产物
 target/
 *.class
 *.jar
 *.log
+
+# IDE
 .idea/
 *.iml
 .DS_Store
+
+# 前端（Vite）
+web/node_modules/
+web/dist/
+# Vite 构建产物会被打进 fat jar，不进版本库
+src/main/resources/static/
+
+# 会话导出等临时目录（评审用的中间产物）
+.tmp-review/

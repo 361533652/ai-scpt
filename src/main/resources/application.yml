@@ -1,0 +1,77 @@
+server:
+  port: 8790
+  address: 127.0.0.1          # 安全红线：只监听本机回环，绝不监听 0.0.0.0
+  shutdown: graceful
+  compression:
+    enabled: true
+    mime-types: application/json,text/css,application/javascript,text/html,text/plain
+    min-response-size: 2048
+
+spring:
+  application:
+    name: gmscpt
+  main:
+    banner-mode: off
+    web-application-type: servlet
+  threads:
+    virtual:
+      enabled: true
+  mvc:
+    async:
+      request-timeout: 0        # SSE 长连接由业务层自己控制超时
+  web:
+    resources:
+      static-locations: classpath:/static/
+  ai:
+    # ===== 本地 Ollama（默认通道） =====
+    ollama:
+      base-url: http://127.0.0.1:11434
+      init:
+        pull-model-strategy: never
+      chat:
+        options:
+          model: qwen2.5-coder:7b     # 默认用代码模型；通用问答可在界面上切 qwen3:8b
+          temperature: 0.3
+          num-ctx: 8192
+      embedding:
+        options:
+          model: nomic-embed-text
+    # ===== OpenAI 兼容通道（云端或任意兼容端点，默认不启用） =====
+    # api-key 必须非空，否则 Spring AI 的自动配置会在启动时直接失败；
+    # 实际调用走 AiGateway 自己构建的客户端（地址/密钥来自界面设置），这里的值只是让容器起得来。
+    openai:
+      base-url: https://api.openai.com
+      api-key: ${GMSCPT_OPENAI_KEY:not-configured}
+      chat:
+        options:
+          model: gpt-4o-mini
+          temperature: 0.3
+
+gmscpt:
+  # 数据目录；留空则用 ~/.gmscpt
+  data-dir: ""
+  # 启动后是否自动打开浏览器
+  open-browser: true
+  # 未显式传 token 时是否禁用鉴权（仅本机开发用，默认 false）
+  auth-disabled: false
+  runtime:
+    # 单脚本事件队列上限：满则丢最旧并计数
+    event-queue-capacity: 4096
+    # 停止宽限期：超时判 killed
+    stop-grace-ms: 3000
+    # 单次运行的默认最长时间（0 = 不限制）
+    max-run-ms: 0
+    # 输入动作限速（每秒），防失控洪泛
+    max-input-actions-per-second: 200
+  input:
+    # 精确相对移动：会临时改系统鼠标速度，默认关闭
+    precise-relative-move: false
+
+logging:
+  level:
+    root: INFO
+    com.gmscpt.server: DEBUG
+    com.gmscpt: INFO
+    org.jnativehook: WARN
+  pattern:
+    console: "%d{HH:mm:ss.SSS} %-5level %logger{28} - %msg%n"
