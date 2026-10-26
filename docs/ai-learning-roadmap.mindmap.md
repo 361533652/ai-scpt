@@ -32,8 +32,14 @@
 #### 模型能力边界（thinking何时有用）
 #### 结构化输出 + 解析失败处理
 #### 动手：设置页加模型参数
-### 第3-4周 Spring AI 2.x 迁移（可选）
-#### 1.1.8 → 2.x（2.0.0 GA，2.1.0-RC1）
+### 第3-4周 Spring AI 2.x 迁移
+#### 1.1.8 → 2.x（稳定2.0.2，2.1.0-RC1）
+#### 🔒 CVE-2026-59318：影响1.0.0-1.0.9/1.1.0-1.1.8/2.0.0
+##### 工具越权派发：prompt injection 可调未声明工具
+##### 修复：2.0.1走OSS，1.1.9只对企业支持
+##### 你现在1.1.8但没暴露工具 → 风险为零
+##### 做Agent前必须升到2.0.1+
+#### ⚠️ 1.x 的 OSS 支持 2026-06 已终止
 #### ⚠️ 2.0 要求 Spring Boot 4.0/4.1 + Jackson 3
 #### 是跨大版本联动升级，不是改版本号
 #### 建议：先跳过，跑通RAG拿到正反馈再回头
@@ -51,6 +57,9 @@
 #### 向量库（pgvector / Milvus）
 #### 混合检索 dense+BM25+RRF（重点）
 #### 重排序 cross-encoder top50→top5（性价比最高，precision+25%）
+##### Java实现：ONNX Runtime Java 1.31.0 进程内跑
+##### ⚠️ 别用DJL：Windows有JVM崩溃(djl#3859)
+#### 向量库：pgvector首选（运维成本最低）
 #### 查询改写 HyDE
 #### 权限过滤（检索前！）
 #### 形态演进：线性RAG → Agentic RAG
@@ -72,6 +81,11 @@
 #### 指标：recall@k / MRR / nDCG@10 / faithfulness
 #### 可观测：trace / token / p95 / 成本归因
 #### 为什么重要：EU AI Act 2026-08-02生效，要求可举证
+#### 资源选型（2026-10）
+##### ❌ RAGAS：维护停滞，release和main都跑不通
+##### ✅ spring-ai-ragas（Java原生）/ RelevancyEvaluator
+##### ✅ Promptfoo（被OpenAI收购）/ Langfuse（被ClickHouse收购）
+##### ⚠️ OTel gen_ai.* 仍未Stable，别写死字段名
 #### 动手：建评测集 + mvn test 回归
 
 ## 阶段二：4-6个月 Agent 与工程化
@@ -198,7 +212,22 @@
 ### 窗口期约12-18个月，之后「会调模型」不再是优势
 
 ## 本机环境备忘
-### 12GB 边界：7B舒适，14B临界
+### 12GB 量化边界（实测口径）
+#### 7B-8B：Q5_K_M 约6-7GB，最划算
+#### 14B：Q4_K_M 约9GB，极限可用
+#### 14B Q5_K_M 约10.5GB → 剩不下KV cache，不可用
+### 推理工具
+#### Ollama 主力 / LM Studio 图形化
+#### ❌ vLLM 本地开发别上（单用户纯开销）
 ### nomic-embed-text：前缀必加，2048 token 上限
 ### RTX50系微调要 bitsandbytes CUDA12.8-12.9 构建
 ### 微调先别急，RAG+提示工程解决不了再考虑
+
+## 版本红线（2026-10，别踩）
+### Spring AI 1.x：OSS支持已终止 + 有CVE
+### Spring AI 2.0.0：仍受CVE影响，必须2.0.1+
+### MCP SSE transport：已弃用→Streamable HTTP
+### ChatMemory：2.1弃用、3.0删除→session memory
+### LangChain4j 1.19.1：误发版，且别升1.19.2
+### RAGAS / torchtune / Tribuo：停维护或无关
+### 手写ReAct解析/向量索引/全参微调

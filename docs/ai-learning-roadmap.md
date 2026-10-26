@@ -77,27 +77,72 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 | **A. 留在 1.1.8，只把概念学透** | 想先把 RAG/Agent 跑通 | 学的是即将过时的 API |
 | **B. 真升级到 2.x** | 想练「跨大版本迁移」这个稀缺能力 | 可能要花 2–4 周，会踩 Spring Boot 4 的坑 |
 
-**我的建议：先做 A 的 1–2 周，把 RAG 跑通拿到正反馈，再回头做 B。**
-理由：迁移是苦活，不该放在刚开始、还没有成就感的时候。等你熟悉了这套代码再动它，效率高得多。
+#### ⚠️ 安全前提：你当前版本有已知 CVE
+
+我核实了 Spring 官方安全公告：**CVE-2026-59318** 影响
+`Spring AI 1.0.0–1.0.9 / 1.1.0–1.1.8 / 2.0.0`（[官方公告](https://spring.io/security/cve-2026-59318/)）。
+
+- **漏洞性质**：tool calling 时，请求级工具列表只是「告知模型」，派发时没有完全强制校验。
+  模型可能通过 prompt injection 调用**当前请求未声明**的工具，导致越权。
+- **修复版本**：`2.0.1`（OSS 可用）；`1.1.9` 和 `1.0.10` **只对企业支持开放**。
+
+**你的处境**：GmScript 用的是 **1.1.8**，正好在受影响范围内。
+但我检查了代码——**你当前没有暴露任何工具**（`@Tool` / `ToolCallback` 命中为 0），
+所以**实际风险暂时为零**。
+
+**这件事的真正意义**：它把「什么时候必须升级」从「看心情」变成了硬约束。
+**你一旦开始做 Agent（第 4–6 个月），就必须在 2.0.1+ 上做，不能在 1.1.8 上做。**
+因为那时你才会真的暴露工具，而这个漏洞的触发条件正是「暴露了工具」。
+
+> 这也是个很好的面试素材：能说清「我知道我的依赖版本有什么 CVE、为什么现在不受影响、
+> 什么时候必须升」——比背八股强得多。
+
+#### 另一个硬事实：1.x 的 OSS 支持已经结束
+
+Spring AI **1.0.x / 1.1.x 的 OSS 支持在 2026-06 已终止**，后续只有企业支持。
+也就是说，你继续留在 1.1.8 意味着：**没有新功能、安全修复要付费**。
+
+**所以修正后的建议**：
+
+| 时间点 | 做什么 |
+| --- | --- |
+| 现在（第 1–8 周） | **可以**留在 1.1.8 跑通 RAG——因为你没暴露工具，且不引入新依赖 |
+| 开始做 Agent 前 | **必须**升到 2.0.1+（安全硬要求，不是偏好） |
+| 有余力时 | 升到 2.1.0-RC1 之外的稳定版，跟住生态 |
+
+**动手**：把 GmScript 的 `OllamaAiGateway` / `OpenAiCompatAiGateway` 迁到 Spring AI 2.x。
+**这是本路线里最有价值的一次练习**——因为它有真实约束（流式要保留、thinking 要分帧、要能取消），
+比跟着教程敲 demo 难得多，也真实得多。
 
 | 2.x 要掌握的核心变化 | 具体内容 |
 | --- | --- |
 | **ChatClient 成为主 API** | `prompt()` / `advisors()` / `entity()` / `stream()`；ChatModel 退为底层构件 |
 | **工具调用循环提到 Advisor 链** | `ToolCallingAdvisor` 自动注册，1.x 里每个模型各自私有的 tool loop 被移除。这是 2.0 最重要的架构变化 |
 | **StructuredOutputValidationAdvisor** | 结构化输出校验失败时**自动自我纠正**，不用你自己写重试 |
-| **ToolSearchToolCallingAdvisor** | 工具数量上百时的渐进式披露，不用每次请求都注册全部工具 |
+| **ToolSearchToolCallingAdvisor** | 工具数量上百时的渐进式披露，官方称省 34%–64% token |
 | **Options 全面重构** | 默认值统一定义在 options 层；options 不可变、用 builder 创建；配置属性去掉了 `.options` 段 |
 | **MCP 一等公民** | `@McpTool` / `@McpResource` / `@McpPrompt` 注解即可暴露服务；**Streamable HTTP 取代 SSE 成为默认传输** |
 | 空安全 | 全量 JSpecify 注解 |
+| 版本基线 | **Java 17**（建议 21）；Spring Boot 4.0/4.1 + Spring Framework 7.0 |
 
-**动手**：把 GmScript 的 `OllamaAiGateway` / `OpenAiCompatAiGateway` 迁到 Spring AI 2.x。
-**这是本路线里最有价值的一次练习**——因为它有真实约束（流式要保留、thinking 要分帧、要能取消），
-比跟着教程敲 demo 难得多，也真实得多。
+#### 2.x 已知的坑（升级时会踩到）
+
+- **1.x → 2.0 破坏性极强**：`toolNames()` / Function bean / `SpringBeanToolCallbackResolver` /
+  `internalToolExecutionEnabled` 全删；Vertex AI chat 移除；ZhipuAI 迁出主仓库。
+- **原生结构化输出 + 工具同用会重复调用**（[issue #6327](https://github.com/spring-projects/spring-ai/issues/6327)）。
+- **2.0.1 把 OpenAI 工具调用 strict mode 默认改成 false**，带可选参数的工具会被 400。
+- **ChatMemory 在 2.1 起 deprecated、3.0 删除**，替代为事件溯源 session memory
+  （但 Cassandra/Neo4j/Mongo/Redis 的 session 版还没出）。
+- **MCP 客户端工具列表有缓存**，server 热更工具后可能长期不感知（[issue #4928](https://github.com/spring-projects/spring-ai/issues/4928)）。
+- **同步阻塞调 LLM 会打满 Tomcat 线程池**；`@Transactional` 里调 LLM 会耗尽连接池。
+  ——这条对你有用：你的项目已经开了虚拟线程，但要注意别在事务里等模型。
 
 **资源**：
 - [Spring AI 2.0.0 GA 官方公告](https://spring.io/blog/2026/06/12/spring-ai-2-0-0-GA-available-now)（英，**一手信息，必读**）
+- [CVE-2026-59318 官方公告](https://spring.io/security/cve-2026-59318/)（英，必读）
+- [Spring AI 2.1.0-RC1 公告](https://spring.io/blog/2026/10/23/spring-ai-2-1-0-RC1-available-now)
 - [Spring AI 官方参考文档](https://docs.spring.io/spring-ai/reference/index.html)（英，权威）
-- [Spring AI Alibaba](https://java2ai.com/)（中文，Agent/Graph 一站式）
+- [Spring AI Alibaba](https://java2ai.com/)（中文，但注意：多个中文分析称其半年无正式版，用前先看 GitHub Releases 核实）
 - [LangChain4j 官方文档](https://docs.langchain4j.dev/)（英，另一条路线，对比着看）
 
 > ❗**避坑**：网上大量「Spring AI 1.0 GA 重磅发布」的中文博客，示例代码在 2.x 上多数跑不通。
@@ -105,14 +150,29 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 
 ### Spring AI vs LangChain4j：该选哪个
 
-这不是「谁更好」，而是分工不同（[三框架同台对比](https://github.com/java-ai-in-action/framework-compare)）：
+这不是「谁更好」，而是分工不同。除功能覆盖外，还有一份**故障场景实测**值得看：
+
+arXiv:2610.25480（2026-10）用 15 个故障场景 × 同步/流式 × 三轮测试：
+
+| 框架 | 通过数 |
+| --- | --- |
+| **Spring AI 2.0.1** | **72/77**（显式配置后 76/83） |
+| LangChain4j 1.21.0 | 47/77（51/83） |
+
+两者都把「缺终止符的流」当完整答案返回——**这是你写流式代码时要自己兜的**。
+
+功能覆盖对比（[三框架同台对比](https://github.com/java-ai-in-action/framework-compare)）：
 
 | 维度 | 更强的一方 | 说明 |
 | --- | --- | --- |
 | 模型集成数量 | **LangChain4j** | 30+ 模型开箱即用 |
 | 向量库支持 | **LangChain4j** | 覆盖最广，两者差异 <10% |
-| MCP 支持 | **Spring AI 2.0** | `@McpTool` 注解 47 行暴露 10 个方法 |
+| MCP 支持 | **Spring AI 2.0** | `@McpTool` 注解即可暴露 |
 | 可观测性 | **Spring AI** | 与 Micrometer / Actuator 天然一致 |
+| 故障场景健壮性 | **Spring AI 2.0.1** | 72/77 vs 47/77 |
+
+> 注：网上流传的「LangChain4j 68% vs Spring AI 52%」采用率数据，来源为 JetBrains 2025 Q1 调查的
+> 中文二手引用，**未找到一手英文出处，谨慎引用**。
 
 **给你的结论**：
 - **主力用 Spring AI** —— 你的项目已经是 Spring Boot，接入成本最低，MCP 支持最好。
@@ -126,7 +186,7 @@ Spring Boot 3.5.16 → 4.x，Jackson 2 → 3。你的 GmScript 里 Spring Boot�
 | 文档解析 | PDF/Word/Markdown 抽取，表格与代码块保真 | 直接 `pdftotext` 会把表格拍平 |
 | 分块 | **递归结构感知分块**（按标题/列表边界切）+ 元数据设计 | 中文按字符切会切碎词 |
 | 嵌入 | 维度、归一化、批量；**注意任务前缀与上下文长度** | 见下方两个实测坑 |
-| 向量库 | pgvector（推荐，和 Spring Boot 同栈）或 Milvus | 索引类型选错，数据量一大就慢 |
+| 向量库 | **pgvector（首选，运维成本最低）**；或 Milvus / Qdrant | 索引类型选错，数据量一大就慢 |
 | 混合检索 | dense + BM25 + RRF 融合 | 只做向量检索，专有名词命中率极低 |
 | 重排序 | cross-encoder（bge-reranker 等）top-50→top-5 | 把 rerank 当万能药，忽略召回本来就没命中 |
 | 查询改写 | HyDE、多查询展开 | 过度改写反而跑偏 |
@@ -166,6 +226,24 @@ Agentic RAG 只在多跳/需反复求证的问题上有优势，且**必须加�
 
 如果只优化一处，选它。cross-encoder 做 top-50 → top-5 精排，
 有报告称 precision 提升约 25%，延迟只增加 5–30ms/文档。
+
+**Java 侧怎么跑 reranker**：两种路线，按需选。
+- 调 Ollama / 远程 API（最省事，适合起步）
+- [ONNX Runtime Java](https://mvnrepository.com/artifact/com.microsoft.onnxruntime/onnxruntime_gpu)（1.31.0，活跃）
+  加载 cross-encoder 模型在进程内跑——**延迟更低、不依赖外部服务**，
+  这是 Java 侧做 embedding/rerank 的主流做法。
+
+> ⚠️ 别用 DJL 走这条路：它在 Windows 上有 `StackBatchifier.batchify` 的
+> JVM Access Violation 崩溃（[djl#3859](https://github.com/deepjavalibrary/djl/issues/3859)）。
+> 另外 Spring AI 的 `TransformersEmbeddingModel` 钉住了 ONNX Runtime 1.21.1 + DJL 0.36.0
+> （落后于 1.31.0/0.39.0），还会尝试联网下载 PyTorch native 库——
+> 生产环境要锁版本或自带模型。
+
+#### 向量库怎么选
+
+- **pgvector 首选**：运维成本最低，和你的 Spring Boot + PostgreSQL 天然同栈。
+- Milvus / Qdrant：数据量大、需要独立扩缩容时再上。
+- 别在新项目里单用 Cassandra/Neo4j 当向量库；Chroma 的 Java 生态较弱。
 
 **动手（这条线直接产出可面试的项目）**：给 GmScript 加「私有知识库问答」——
 把你自己写的 `docs/*.md` 和 Lua API 文档喂进去，问「怎么给脚本绑热键」能答对且给出处。
@@ -234,12 +312,24 @@ Agentic RAG 只在多跳/需反复求证的问题上有优势，且**必须加�
 **动手**：给 GmScript 的知识库问答建一套评测集 + 一个 `mvn test` 能跑的回归测试。
 这一步做完，你的项目从「demo」变成「有质量保障的系统」——面试时这比多两个功能管用得多。
 
-**资源**：
-- [Ragas 文档](https://docs.ragas.io/en/stable/)（RAG 评测指标最标准实现）
-- [Promptfoo](https://www.promptfoo.dev/docs/intro/)（提示词回归 + 红队）
-- [Langfuse](https://langfuse.com/docs)（MIT、OTel 原生，最广泛采用的开源方案，可自部署）
-- [Arize Phoenix](https://phoenix.arize.com/)（备选，OTel 路线）
-- [EvalScope](https://github.com/modelscope/evalscope)（中文友好，一条命令跑基准 + 压测 TTFT/TPOT）
+**资源（已按 2026-10 现状修正）**：
+
+- ❌ **RAGAS 不要再用了**。我核实了它的仓库：227 个未合并 PR，
+  issue #3004 直问「这项目还在维护吗」，作者承认**当前 release 和 main 都跑不通**。
+  别把评测体系绑在它上面。
+- ✅ **Java 原生路径**：
+  - [spring-ai-ragas](https://github.com/ai-qa-solutions/spring-ai-ragas)（Maven Central `io.github.ai-qa-solutions`，
+    含 Spring Boot starter + Allure 报告）——Java 侧少见的开箱评测
+  - Spring AI 自带 `RelevancyEvaluator`，够做基础相关性评估
+- ✅ [Promptfoo](https://www.promptfoo.dev/docs/intro/)（语言无关 CLI，测 Java 服务就是打 HTTP 接口；
+  **2026-03 已被 OpenAI 收购**，仍开源。注意：Gitee 上的 `promptfoo-java` 分叉可信度未核实，别用）
+- ✅ [Langfuse](https://langfuse.com/docs)（MIT、OTel 原生，可自部署；**2026-01 被 ClickHouse 收购**，
+  产品仍在。官方有 [Spring AI OTLP 集成指南](https://langfuse.com/integrations/frameworks/spring-ai)）
+- ✅ [Arize Phoenix](https://phoenix.arize.com/)（备选，OTel 路线）
+- ✅ [EvalScope](https://github.com/modelscope/evalscope)（中文友好，一条命令跑基准 + 压测 TTFT/TPOT）
+
+> ⚠️ **OTel 的 `gen_ai.*` 语义约定到 2026-05 仍是 Development、未 Stable**，
+> 且逐消息内容属性已改为默认不采集。**别把字段名写死在业务代码里**，否则规范一变就全挂。
 
 ---
 
@@ -483,7 +573,58 @@ Spring AI 与 LangChain4j 都已接入，是 Java 侧 Agent 的必修协议。
 
 ## 十二、本机环境备忘
 
-- **12GB VRAM 的现实边界**：7B Q4 舒适，14B Q4 是临界（约 12GB），再大必须量化或 CPU offload。
-- **RTX 50 系（sm_120）的坑**：微调要用 `bitsandbytes` 的 **CUDA 12.8–12.9 构建**，旧 wheel 直接报错。这是最容易卡住的一步。
-- **微调该不该做**：先别急。用 RAG + 提示工程解决不了再考虑。真要试，用 Unsloth（12GB 上 7B QLoRA 约 6GB）或 ms-swift，在 7B 上跑通一次即可，别陷进去。
+### 12GB VRAM 的量化边界（实测口径）
+
+| 模型规模 | 推荐量化 | 显存占用 | 可用性 |
+| --- | --- | --- | --- |
+| 7B–8B | **Q5_K_M** | 约 6–7GB | ✅ 最划算，留足 KV cache |
+| 7B–8B | Q4_K_M | 约 5GB | ✅ 更省，质量略降 |
+| 14B | **Q4_K_M** | 约 9GB | ✅ 极限可用 |
+| 14B | Q5_K_M | 约 10.5GB | ❌ **剩不下 KV cache，基本不可用** |
+
+**结论**：14B 的极限就是 Q4_K_M。别贪 Q5，上下文一长就爆。
+你现在的 `qwen3:8b`（Q4_K_M，5.2GB）属于舒适区，可以放心用。
+
+### 本地推理工具怎么选
+
+| 工具 | 定位 | 你该用吗 |
+| --- | --- | --- |
+| **Ollama** | 一键跑模型 + OpenAI 兼容接口 | ✅ **主力**，你已经在用 |
+| **LM Studio** | GUI 舒适，0.4.x 有 tensor parallelism + headless + 原生 MCP | ✅ 想图形化调参时用 |
+| llama.cpp | 极致压缩/边缘/CPU，GGUF 1.5–8bit | 需要深度调优时 |
+| **vLLM** | 多并发生产服务（paged attention） | ❌ **本地开发别上**，单用户是纯开销，要 4+ 并发才体现优势 |
+
+> 注：Ollama 在 2026-05 删掉了自带的 GGML/llama.cpp backend，改用上游 `llama-server`
+> （[PR #16031](https://github.com/ollama/ollama/pull/16031)）。这不影响你使用，但意味着它的行为会更贴近 llama.cpp。
+
+### 其他
+
+- **RTX 50 系（sm_120）的坑**：微调要用 `bitsandbytes` 的 **CUDA 12.8–12.9 构建**，
+  旧 wheel 直接报错。这是最容易卡住的一步。
+- **微调该不该做**：先别急。RAG + 提示工程解决不了再考虑。
+  真要试，用 Unsloth（12GB 上 7B QLoRA 约 6GB）或 ms-swift，跑通一次即可，别陷进去。
 - 本机已装：`qwen3:8b`、`qwen2.5-coder:7b`、`gemma3:4b`（视觉）、`nomic-embed-text`（向量）。
+
+---
+
+## 十三、版本红线（2026-10 现状，别踩）
+
+这份清单会过期，但下面这些是**现在就会让你白干**的：
+
+| 别用 | 原因 |
+| --- | --- |
+| **Spring AI 1.0.x / 1.1.x** | OSS 支持 2026-06 已终止；且落在 CVE-2026-59318 影响范围内 |
+| **Spring AI 2.0.0** | 同样受 CVE-2026-59318 影响，**必须 2.0.1+** |
+| **MCP 的 SSE transport** | 已弃用 → Streamable HTTP（无状态变体可水平扩展） |
+| Spring AI 1.x 的 `toolNames()` / Function bean / `SpringBeanToolCallbackResolver` | 2.0 全删，改用显式 `ToolCallback` / `@Tool` |
+| **`ChatMemory` / `MessageWindowChatMemory` / `MessageChatMemoryAdvisor`** | 2.1 deprecated、3.0 删除 → 事件溯源 session memory |
+| **LangChain4j 1.19.1** | 官方公告「误发版，不要用」。**若已在 1.19.1，千万别升到 1.19.2**（会静默删掉约 108 个提交的功能），直接去 1.20+ |
+| `langchain4j-github-models` | 模块已删除 |
+| **RAGAS（Python）** | 维护停滞，当前 release 与 main 都跑不通（[issue #3004](https://github.com/vibrantlabsai/ragas/issues/3004)） |
+| **torchtune** | 官方 README 已声明停止维护 |
+| Tribuo | 传统 ML，与 GenAI 无关，别碰 |
+| 手写 ReAct 文本解析 / 手写向量索引 / 个人规模全参微调 | 见第七节「明确不用学」 |
+
+> **关于 Spring AI Alibaba**：多个 2026 年 9–10 月的中文分析称其半年无正式版
+> （最新 v1.1.2.2 / 2026-03-10），项目重心转向 AgentScope Java。
+> **我未找到一手官方英文声明**——用之前请自己打开 GitHub Releases 核实，别只看中文博客。
