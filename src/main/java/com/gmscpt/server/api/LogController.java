@@ -103,8 +103,8 @@ public class LogController {
             try {
                 emitter.send(SseEmitter.event().id(String.valueOf(entry.seq())).name("log").data(entry));
             } catch (Exception e) {
+                // 连接已断，只标记不再收尾（原因同 sendRun）
                 closed.set(true);
-                emitter.complete();
             }
         });
 
@@ -131,8 +131,10 @@ public class LogController {
                             "actionCount", host.actionCount(),
                             "droppedEvents", host.droppedEvents())));
                 } catch (Exception e) {
+                    // 连接已断：只标记，不要再调 complete()。
+                    // complete() 会去 flush 一个已经不可用的响应，
+                    // 抛 AsyncRequestNotUsableException 冒到全局异常处理器刷屏。
                     closed.set(true);
-                    emitter.complete();
                 }
             }
         };
@@ -143,8 +145,9 @@ public class LogController {
             try {
                 emitter.send(SseEmitter.event().comment("ping"));
             } catch (Exception e) {
+                // 同上：客户端断开后 send 必失败，此时任何对 emitter 的收尾动作都会二次抛异常。
+                // 只需把 closed 置位，让心跳任务自己停，清理交给 onCompletion/onError 回调。
                 closed.set(true);
-                emitter.complete();
             }
         }, 15, 15, TimeUnit.SECONDS);
 
