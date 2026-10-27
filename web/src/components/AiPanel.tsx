@@ -143,11 +143,17 @@ export function AiPanel() {
           title="AI 提供方"
           disabled={providers.length === 0}
         >
-          {providers.length === 0 ? <option value="">没有可用的提供方</option> : null}
+          {providers.length === 0 ? <option value="">正在读取通道…</option> : null}
           {providers.map((provider) => (
             <option key={provider.id} value={provider.id}>
-              {provider.id}（{provider.kind}
-              {provider.available ? '' : '，不可用'}）
+              {/* 不可用要写清「为什么」，否则用户只会看到「没有可用的提供方」却无从下手。
+                  远端通道未配置密钥时是「未配置」而不是「故障」，措辞要区分开。 */}
+              {provider.id}
+              {provider.available
+                ? ''
+                : provider.probed === false
+                  ? '（未配置密钥）'
+                  : '（连接失败，检查服务是否启动）'}
             </option>
           ))}
         </select>

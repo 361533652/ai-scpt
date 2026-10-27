@@ -201,10 +201,18 @@ export interface LogListResponse {
 
 export interface AiProvider {
   id: string
-  kind: string
-  baseUrl: string
-  model: string
+  kind?: string
+  baseUrl?: string
+  model?: string
   available: boolean
+  /**
+   * 是否做过真实网络探活。
+   * - true：本机通道（ollama），可用性来自实际探测
+   * - false：远端通道，未探活，available 表示「是否已配置密钥」
+   * - 缺省：旧后端，按已探活处理
+   */
+  probed?: boolean
+  models?: string[]
 }
 
 export interface AiProviderListResponse {
