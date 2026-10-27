@@ -85,6 +85,14 @@ public class LogController {
             for (LogEntry e : backlog) {
                 emitter.send(SseEmitter.event().id(String.valueOf(e.seq())).name("log").data(e));
             }
+            // 关键：backlog 为空时必须主动发一帧，把响应头 flush 出去。
+            // 否则 Tomcat 会攒着不发送响应头，浏览器的 fetch 永远拿不到 response，
+            // 一直等到前端 15 秒建连超时——表现为「连接 /logs/stream 超时」。
+            // 这个 bug 只在「前端带上 sinceSeq 且没有新日志」时触发，所以第一次打开正常、
+            // 重连时才报错，很容易被误判成后端没启动。
+            if (backlog.isEmpty()) {
+                emitter.send(SseEmitter.event().comment("connected"));
+            }
         } catch (IOException e) {
             emitter.completeWithError(e);
             return emitter;
